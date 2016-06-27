@@ -9,7 +9,7 @@
 #
 #
 #  Created by Laurens van der Maaten on 20-12-08.
-#  Copyright (c) 2008 Tilburg University. All rights reserved.
+#  Copyright (c) 2008 Tilburg University. All rights reserved.da asdasdas
 
 import numpy as Math
 import numpy as np
