@@ -9,7 +9,7 @@
 #
 #
 #  Created by Laurens van der Maaten on 20-12-08.
-#  Copyright (c) 2008 Tilburg University. All rights reserved.da asdasdas
+#  Copyright (c) 2008 Tilburg University. All rights reserved.
 
 import numpy as Math
 import numpy as np
@@ -195,7 +195,7 @@ def demeanL(Y,average_Y):
 		pp= Math.tile(Math.mean(Y, 0), (Y.shape[0], 1))
 		return Y - Math.tile(average_Y, (Y.shape[0], 1))
 
-def layout_plot(d):
+def layout_plot(d, save=False, frame=0, path='./'):
 	for k in d.keys():
 		if k == 'shared': continue
 		d[k]['data'] = d[k]['data'][d['shared']['data'].shape[0] - 1:]
@@ -211,6 +211,7 @@ def layout_plot(d):
 	for c, p in zip(numbers, sns.color_palette("bright", len(numbers))):
 		colors[c] = p
 
+	pl.hold(True)
 	markers = {'shared': 'o', 'site 1': 'D', 'site 2': 's', 'site 3': 'v'}
 	for k in d.keys():
 		x = d[k]['data'][:, 0]
@@ -225,22 +226,27 @@ def layout_plot(d):
 
 	pl.axis('off')
 	pl.legend(loc=0)
-	pl.show()
-
+	if not save:
+		pl.show()
+	else:
+		pl.savefig(path+'frame_'+'%03d'%frame, transparent=True, pad_inches=0, bbox_inches='tight')
+	pl.close()
+	
 def master(Y11, Shared_length, Site_1, Site1_length_X, Site_2, Site2_length_X, Site_3, Site3_length_X):
 	max_iter = 1000; C_Site_1=0; C_Site_2 = 0; C_Site_3 = 0;
-	Y22, dY_Site_1, iY_Site_1, gains_Site_1, P_Site_1, n_Site_1 = tsne1(Shared_length, Site1_length_X, Site_1, 2, 50, 100.0, Y11);
-	Y23, dY_Site_2, iY_Site_2, gains_Site_2, P_Site_2, n_Site_2 = tsne1(Shared_length, Site2_length_X, Site_2, 2, 50, 100.0, Y11);
-	Y24, dY_Site_3, iY_Site_3, gains_Site_3, P_Site_3, n_Site_3 = tsne1(Shared_length, Site3_length_X, Site_3, 2, 50, 100.0, Y11);
+	Y22, dY_Site_1, iY_Site_1, gains_Site_1, P_Site_1, n_Site_1 = tsne1(Shared_length, Site1_length_X, Site_1, 2, 50, 30.0, Y11);
+	Y23, dY_Site_2, iY_Site_2, gains_Site_2, P_Site_2, n_Site_2 = tsne1(Shared_length, Site2_length_X, Site_2, 2, 50, 30.0, Y11);
+	Y24, dY_Site_3, iY_Site_3, gains_Site_3, P_Site_3, n_Site_3 = tsne1(Shared_length, Site3_length_X, Site_3, 2, 50, 30.0, Y11);
 
 	for iter in range(max_iter):
 		Y22, iY_Site_1, Q_Site_1, C_Site_1, P_Site_1   = master_child(Y22, dY_Site_1, iY_Site_1, gains_Site_1, n_Site_1, Shared_length, P_Site_1,  iter, C_Site_1)
 		Y23, iY_Site_2, Q_Site_2, C_Site_2, P_Site_2   = master_child(Y23, dY_Site_2, iY_Site_2, gains_Site_2, n_Site_2, Shared_length, P_Site_2,  iter, C_Site_2)
 		Y24, iY_Site_3, Q_Site_3, C_Site_3, P_Site_3   = master_child(Y24, dY_Site_3, iY_Site_3, gains_Site_3, n_Site_3, Shared_length, P_Site_3,  iter, C_Site_3)
 
-		Y22[:Shared_length, :] = updateS(Y22[:Shared_length, :], iY_Site_1[:Shared_length, :], iY_Site_2[:Shared_length, :], iY_Site_3[:Shared_length, :])
-		Y23[:Shared_length, :] = Y22[:Shared_length, :]
-		Y24[:Shared_length, :] = Y22[:Shared_length, :]
+		Y11 = updateS(Y11, iY_Site_1[:Shared_length, :], iY_Site_2[:Shared_length, :], iY_Site_3[:Shared_length, :])
+		Y22[:Shared_length, :] = Y11		
+		Y23[:Shared_length, :] = Y11 #Y22[:Shared_length, :]
+		Y24[:Shared_length, :] = Y11 #Y22[:Shared_length, :]
 
 		Y22[Shared_length:, :] = updateL(Y22[Shared_length:, :], iY_Site_1[Shared_length:, :])
 		Y23[Shared_length:, :] = updateL(Y23[Shared_length:, :], iY_Site_2[Shared_length:, :])
@@ -270,12 +276,12 @@ def master(Y11, Shared_length, Site_1, Site1_length_X, Site_2, Site2_length_X, S
 		print(Combined_Errors)
 
 		Y11[:Shared_length_X, :] = Y22[:Shared_length_X, :]
-		if (iter + 1) % 10 == 0:
+		if (iter > 0):
 			d = {'shared': {'data': Y11, 'labels': labels},
 			 'site 1': {'data': Y22, 'labels': labels_1},
 			 'site 2': {'data': Y23, 'labels': labels_2},
 			 'site 3': {'data': Y24, 'labels': labels_3}}
-			layout_plot(d)
+			layout_plot(d, save=True, frame=iter, path='/home/deb/figure100/')
 
 			#with open('/tmp/Deb/iter.pkl', 'wb') as f:
 			#	pkl.dump(d, f)
@@ -355,6 +361,7 @@ def tsne1(Shared_length, Site_length, X = Math.array([]), no_dims = 2, initial_d
 	difference = Site_length- Shared_length;
 	print(Shared_length, Site_length,difference)
 	Y = Math.random.randn(Site_length, no_dims);
+	Y[:Shared_length,:] = Y_1
 	X = pca(X, initial_dims).real;
 	(n, d) = X.shape;
 	max_iter = 1000;
@@ -416,7 +423,7 @@ if __name__ == "__main__":
 	#print(Site1_length_X, Site1_length_Y)
 	#Y_Combined = tsne(Combined_X, 2, 20, 50.0)
 
-	Y11 = tsne(X, 2, 50, 100.0);
+	Y11 = Math.random.randn(Shared_length_X, 2) #tsne(X, 2, 50, 100.0);
 
 	# Modification starts
 	Y22,Y23,Y24,d = master(Y11,Shared_length_X, Site_1, Site1_length_X, Site_2, Site2_length_X, Site_3, Site3_length_X)
