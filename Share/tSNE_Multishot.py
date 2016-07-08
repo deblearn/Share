@@ -13,8 +13,10 @@
 
 import numpy as Math
 import numpy as np
-import pylab as Plot
-import pylab as pl
+#import pylab as Plot
+#import pylab as pl
+import matplotlib.pyplot as Plot
+import matplotlib.pyplot as pl
 import pickle as pkl
 import time
 import seaborn as sns
@@ -32,7 +34,7 @@ def Hbeta(D = Math.array([]), beta = 1.0):
 	return H, P;
 
 
-def x2p(X = Math.array([]), tol = 1e-5, perplexity = 100.0):
+def x2p(X = Math.array([]), tol = 1e-5, perplexity = 200.0):
 	"""Performs a binary search to get P-values in such a way that each conditional Gaussian has the same perplexity."""
 
 	# Initialize some variables
@@ -100,7 +102,7 @@ def pca(X = Math.array([]), no_dims = 50):
 	return Y;
 
 
-def tsne(X = Math.array([]), no_dims = 2, initial_dims = 50, perplexity = 100.0):
+def tsne(X = Math.array([]), no_dims = 2, initial_dims = 50, perplexity = 200.0):
 	"""Runs t-SNE on the dataset in the NxD array X to reduce its dimensionality to no_dims dimensions.
 	The syntaxis of the function is Y = tsne.tsne(X, no_dims, perplexity), where X is an NxD NumPy array."""
 
@@ -174,7 +176,8 @@ def tsne(X = Math.array([]), no_dims = 2, initial_dims = 50, perplexity = 100.0)
 	return Y;
 
 
-def updateS(Y,iY_Site_1,iY_Site_2,iY_Site_3):
+def updateS(Y1,Y2,Y3,iY_Site_1,iY_Site_2,iY_Site_3):
+		Y= (Y1 + Y2 + Y3)/3
 		iY= (iY_Site_1 + iY_Site_2 + iY_Site_3)/3
 		Y =  Y + iY
 
@@ -234,16 +237,17 @@ def layout_plot(d, save=False, frame=0, path='./'):
 	
 def master(Y11, Shared_length, Site_1, Site1_length_X, Site_2, Site2_length_X, Site_3, Site3_length_X):
 	max_iter = 1000; C_Site_1=0; C_Site_2 = 0; C_Site_3 = 0;
-	Y22, dY_Site_1, iY_Site_1, gains_Site_1, P_Site_1, n_Site_1 = tsne1(Shared_length, Site1_length_X, Site_1, 2, 50, 30.0, Y11);
-	Y23, dY_Site_2, iY_Site_2, gains_Site_2, P_Site_2, n_Site_2 = tsne1(Shared_length, Site2_length_X, Site_2, 2, 50, 30.0, Y11);
-	Y24, dY_Site_3, iY_Site_3, gains_Site_3, P_Site_3, n_Site_3 = tsne1(Shared_length, Site3_length_X, Site_3, 2, 50, 30.0, Y11);
+	Y22, dY_Site_1, iY_Site_1, gains_Site_1, P_Site_1, n_Site_1 = tsne1(Shared_length, Site1_length_X, Site_1, 2, 50, 200.0, Y11);
+	Y23, dY_Site_2, iY_Site_2, gains_Site_2, P_Site_2, n_Site_2 = tsne1(Shared_length, Site2_length_X, Site_2, 2, 50, 200.0, Y11);
+	Y24, dY_Site_3, iY_Site_3, gains_Site_3, P_Site_3, n_Site_3 = tsne1(Shared_length, Site3_length_X, Site_3, 2, 50, 200.0, Y11);
 
 	for iter in range(max_iter):
 		Y22, iY_Site_1, Q_Site_1, C_Site_1, P_Site_1   = master_child(Y22, dY_Site_1, iY_Site_1, gains_Site_1, n_Site_1, Shared_length, P_Site_1,  iter, C_Site_1)
 		Y23, iY_Site_2, Q_Site_2, C_Site_2, P_Site_2   = master_child(Y23, dY_Site_2, iY_Site_2, gains_Site_2, n_Site_2, Shared_length, P_Site_2,  iter, C_Site_2)
 		Y24, iY_Site_3, Q_Site_3, C_Site_3, P_Site_3   = master_child(Y24, dY_Site_3, iY_Site_3, gains_Site_3, n_Site_3, Shared_length, P_Site_3,  iter, C_Site_3)
 
-		Y11 = updateS(Y11, iY_Site_1[:Shared_length, :], iY_Site_2[:Shared_length, :], iY_Site_3[:Shared_length, :])
+		#Y11 = updateS(Y11, iY_Site_1[:Shared_length, :], iY_Site_2[:Shared_length, :], iY_Site_3[:Shared_length, :])
+		Y11 = updateS(Y22[:Shared_length, :],Y23[:Shared_length, :],Y24[:Shared_length, :], iY_Site_1[:Shared_length, :], iY_Site_2[:Shared_length, :], iY_Site_3[:Shared_length, :])
 		Y22[:Shared_length, :] = Y11		
 		Y23[:Shared_length, :] = Y11 #Y22[:Shared_length, :]
 		Y24[:Shared_length, :] = Y11 #Y22[:Shared_length, :]
@@ -281,7 +285,7 @@ def master(Y11, Shared_length, Site_1, Site1_length_X, Site_2, Site2_length_X, S
 			 'site 1': {'data': Y22, 'labels': labels_1},
 			 'site 2': {'data': Y23, 'labels': labels_2},
 			 'site 3': {'data': Y24, 'labels': labels_3}}
-			layout_plot(d, save=True, frame=iter, path='/home/deb/figure100/')
+			layout_plot(d, save=True, frame=iter, path='/na/homes/dsaha/figure/7th_July_Perplexity_200/')
 
 			#with open('/tmp/Deb/iter.pkl', 'wb') as f:
 			#	pkl.dump(d, f)
@@ -343,7 +347,7 @@ def master_child(Y, dY, iY, gains, n, Shared_length, P, iter, C):
 
 
 
-def tsne1(Shared_length, Site_length, X = Math.array([]), no_dims = 2, initial_dims = 50, perplexity = 100.0, Y_1 = Math.array([])):
+def tsne1(Shared_length, Site_length, X = Math.array([]), no_dims = 2, initial_dims = 50, perplexity = 200.0, Y_1 = Math.array([])):
 	"""Runs t-SNE on the dataset in the NxD array X to reduce its dimensionality to no_dims dimensions.
 	The syntaxis of the function is Y = tsne.tsne(X, no_dims, perplexity), where X is an NxD NumPy array."""
 
@@ -402,8 +406,8 @@ if __name__ == "__main__":
 	# X = Math.loadtxt("mnist2500_X.txt");
 	# labels = Math.loadtxt("mnist2500_labels.txt");
 
-	Combined_X = Math.loadtxt("Preprocessing_Mnist_X.txt");
-	Combined_labels = Math.loadtxt("Preprocessing_label.txt");
+	#Combined_X = Math.loadtxt("Preprocessing_Mnist_X.txt");
+	#Combined_labels = Math.loadtxt("Preprocessing_label.txt");
 
 	X = Math.loadtxt("Shared_Mnist_X.txt");
 	labels = Math.loadtxt("Shared_lable.txt");
@@ -422,8 +426,9 @@ if __name__ == "__main__":
 	#print(Shared_length_X, Shared_length_Y)
 	#print(Site1_length_X, Site1_length_Y)
 	#Y_Combined = tsne(Combined_X, 2, 20, 50.0)
-
-	Y11 = Math.random.randn(Shared_length_X, 2) #tsne(X, 2, 50, 100.0);
+	
+	Y11= tsne(X, 2, 50, 200.0);
+	#Y11 = Math.random.randn(Shared_length_X, 2) #tsne(X, 2, 50, 100.0);
 
 	# Modification starts
 	Y22,Y23,Y24,d = master(Y11,Shared_length_X, Site_1, Site1_length_X, Site_2, Site2_length_X, Site_3, Site3_length_X)
