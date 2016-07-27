@@ -118,7 +118,8 @@ def tsne(X=Math.array([]), no_dims=2, initial_dims=50, perplexity= 100.0):
     (n, d) = X.shape;
     max_iter = 1000;
     initial_momentum = 0.5;
-    final_momentum = 0.8;
+    middle_momentum = 0.7
+    final_momentum = 0.9;
     eta = 500;
     min_gain = 0.01;
     Y = Math.random.randn(n, no_dims);
@@ -131,7 +132,7 @@ def tsne(X=Math.array([]), no_dims=2, initial_dims=50, perplexity= 100.0):
     # (bbb, bbbb) = P.shape;
     P = P + Math.transpose(P);
     P = P / Math.sum(P);
-    P = P * 4;  # early exaggeration
+    P = P * 8;  # early exaggeration
     P = Math.maximum(P, 1e-12);
 
     # Run iterations
@@ -150,8 +151,10 @@ def tsne(X=Math.array([]), no_dims=2, initial_dims=50, perplexity= 100.0):
             dY[i, :] = Math.sum(Math.tile(PQ[:, i] * num[:, i], (no_dims, 1)).T * (Y[i, :] - Y), 0);
 
         # Perform the update
-        if iter < 250:
+        if iter <= 20:
             momentum = initial_momentum
+        elif (iter > 20 and iter < 920):
+            momentum = middle_momentum
         else:
             momentum = final_momentum
         gains = (gains + 0.2) * ((dY > 0) != (iY > 0)) + (gains * 0.8) * ((dY > 0) == (iY > 0));
@@ -168,14 +171,15 @@ def tsne(X=Math.array([]), no_dims=2, initial_dims=50, perplexity= 100.0):
             print "Iteration ", (iter + 1), ": error is ", C
 
         # Stop lying about P-values
-        if iter == 990:
+        if iter == 900:
             P = P / 4;
 
     # Return solution
     return Y;
 
 
-def updateS(Y, iY_Site_1, iY_Site_2, iY_Site_3):
+def updateS(Y1,Y2,Y3, iY_Site_1, iY_Site_2, iY_Site_3):
+    Y= (Y1 + Y2 + Y3)/3
     iY = (iY_Site_1 + iY_Site_2 + iY_Site_3) / 3
     Y = Y + iY
 
@@ -283,7 +287,7 @@ def master(Y11, Shared_length, Site_1, Site1_length_X, Site_2, Site2_length_X, S
         Y24, iY_Site_3, Q_Site_3, C_Site_3, P_Site_3 = master_child(Y24, dY_Site_3, iY_Site_3, gains_Site_3, n_Site_3,
                                                                     Shared_length, P_Site_3, iter, C_Site_3)
 
-        Y11 = updateS(Y11, iY_Site_1[:Shared_length, :], iY_Site_2[:Shared_length, :], iY_Site_3[:Shared_length, :])
+        Y11 = updateS(Y22[:Shared_length, :],Y23[:Shared_length, :],Y24[:Shared_length, :], iY_Site_1[:Shared_length, :], iY_Site_2[:Shared_length, :], iY_Site_3[:Shared_length, :])
         Y22[:Shared_length, :] = Y11
         Y23[:Shared_length, :] = Y11  # Y22[:Shared_length, :]
         Y24[:Shared_length, :] = Y11  # Y22[:Shared_length, :]
@@ -323,7 +327,7 @@ def master(Y11, Shared_length, Site_1, Site1_length_X, Site_2, Site2_length_X, S
                  'site 1': {'data': Y22, 'labels': labels_1},
                  'site 2': {'data': Y23, 'labels': labels_2},
                  'site 3': {'data': Y24, 'labels': labels_3}}
-            layout_plot(d, save=True, frame=iter, path='/home/deb/figure100/18th July/Final12/')
+            layout_plot(d, save=True, frame=iter, path='/home/deb/figure100/Figure_25th_July/First_5000_Kaggle_Second_Datasets_Placement_adjustments/')
 
             # with open('/tmp/Deb/iter.pkl', 'wb') as f:
             #	pkl.dump(d, f)
@@ -339,7 +343,8 @@ def master_child(Y, dY, iY, gains, n, Shared_length, P, iter, C):
 
     max_iter = 1000;
     initial_momentum = 0.5;
-    final_momentum = 0.8;
+    middle_momentum = 0.7
+    final_momentum = 0.9;
     eta = 500;
     min_gain = 0.01;
     no_dims = 2;
@@ -356,10 +361,13 @@ def master_child(Y, dY, iY, gains, n, Shared_length, P, iter, C):
         dY[i, :] = Math.sum(Math.tile(PQ[:, i] * num[:, i], (no_dims, 1)).T * (Y[i, :] - Y), 0);
 
     # Perform the update
-    if iter < 250:
+    if iter <= 20:
         momentum = initial_momentum
-    else:
+    elif (iter>20 and iter < 920) :
+        momentum = middle_momentum
+    else :
         momentum = final_momentum
+
     gains = (gains + 0.2) * ((dY > 0) != (iY > 0)) + (gains * 0.8) * ((dY > 0) == (iY > 0));
     gains[gains < min_gain] = min_gain;
     iY = momentum * iY - eta * (gains * dY);
@@ -374,7 +382,7 @@ def master_child(Y, dY, iY, gains, n, Shared_length, P, iter, C):
         print "Iteration ", (iter + 1), ": error is ", C
 
     # Stop lying about P-values
-    if iter == 990:
+    if iter == 900:
         P = P / 4;
 
     return (Y, iY, Q, C, P);
@@ -422,7 +430,7 @@ def tsne1(Shared_length, Site_length, X=Math.array([]), no_dims=2, initial_dims=
     # (bbb, bbbb) = P.shape;
     P = P + Math.transpose(P);
     P = P / Math.sum(P);
-    P = P * 4;  # early exaggeration
+    P = P * 8;  # early exaggeration
     P = Math.maximum(P, 1e-12);
     (n1, d1) = P.shape;
     # Return solution
@@ -437,100 +445,6 @@ def normalize_columns(arr=Math.array([])):
             arr[rows, :] = arr[rows, :] / abs(arr[rows, :]).max()
 
     return arr
-def centralized_calculation_final(labels,Y,length,a,b):
-    for i in range(0, length):
-        if (labels[i] == 0):
-            if ((Y[i][1] > a[0] or Y[i][1] < b[0]) or (Y[i][1] < a[0] or Y[i][1] > b[0])):
-                Y[i][1] = random.uniform(a[0], b[0])
-        if (labels[i] == 1):
-            if ((Y[i][1] > a[1] or Y[i][1] < b[1]) or (Y[i][1] < a[1] or Y[i][1] > b[1])):
-                Y[i][1] = random.uniform(a[1], b[1])
-        if (labels[i] == 2):
-            if ((Y[i][1] > a[2] or Y[i][1] < b[2]) or (Y[i][1] < a[2] or Y[i][1] > b[2])):
-                Y[i][1] = random.uniform(a[2], b[2])
-        if (labels[i] == 3):
-            if ((Y[i][1] > a[3] or Y[i][1] < b[3]) or (Y[i][1] < a[3] or Y[i][1] > b[3])):
-                Y[i][1] = random.uniform(a[3], b[3])
-        if (labels[i] == 4):
-            if ((Y[i][1] > a[4] or Y[i][1] < b[4]) or (Y[i][1] < a[4] or Y[i][1] > b[4])):
-                Y[i][1] = random.uniform(a[4], b[4])
-        if (labels[i] == 5):
-            if ((Y[i][1] > a[5] or Y[i][1] < b[5]) or (Y[i][1] < a[5] or Y[i][1] > b[5])):
-                Y[i][1] = random.uniform(a[5], b[5])
-        if (labels[i] == 6):
-            if ((Y[i][1] > a[6] or Y[i][1] < b[6]) or (Y[i][1] < a[6] or Y[i][1] > b[6])):
-                Y[i][1] = random.uniform(a[6], b[6])
-        if (labels[i] == 7):
-            if ((Y[i][1] > a[7] or Y[i][1] < b[7]) or (Y[i][1] < a[7] or Y[i][1] > b[7])):
-                Y[i][1] = random.uniform(a[7], b[7])
-        if (labels[i] == 8):
-            if ((Y[i][1] > a[8] or Y[i][1] < b[8]) or (Y[i][1] < a[8] or Y[i][1] > b[8])):
-                Y[i][1] = random.uniform(a[8], b[8])
-        if (labels[i] == 9):
-            if ((Y[i][1] > a[9] or Y[i][1] < b[9]) or (Y[i][1] < a[9] or Y[i][1] > b[9])):
-                Y[i][1] = random.uniform(a[9], b[9])
-    return Y
-
-def centralized_calculation(labels,Y,length,Total_sum,count):
-    for i in range(0,length):
-        if (labels[i] == 0):
-            Total_sum[0] = Total_sum[0] + Y[i][1]
-            count[0] += 1
-        if (labels[i] == 1):
-            Total_sum[1] = Total_sum[1] + Y[i][1]
-            count[1] += 1
-        if (labels[i] == 2):
-            Total_sum[2] = Total_sum[2] + Y[i][1]
-            count[2] += 1
-        if (labels[i] == 3):
-            Total_sum[3] = Total_sum[3] + Y[i][1]
-            count[3] += 1
-        if (labels[i] == 4):
-            Total_sum[4] = Total_sum[4] + Y[i][1]
-            count[4] += 1
-        if (labels[i] == 5):
-            Total_sum[5] = Total_sum[5] + Y[i][1]
-            count[5] += 1
-        if (labels[i] == 6):
-            Total_sum[6] = Total_sum[6] + Y[i][1]
-            count[6] += 1
-        if (labels[i] == 7):
-            Total_sum[7] = Total_sum[7] + Y[i][1]
-            count[7] += 1
-        if (labels[i] == 8):
-            Total_sum[8] = Total_sum[8] + Y[i][1]
-            count[8] += 1
-        if (labels[i] == 9):
-            Total_sum[9] = Total_sum[9] + Y[i][1]
-            count[9] += 1
-    return Total_sum,count
-
-
-def centralized(Y11,Y22,Y23,Y24,labels,labels_1,labels_2,labels_3,Shared_length_X,Site1_length_X,Site2_length_X,Site3_length_X):
-    Total_sum = [0]*100
-    count = [0]*100
-    a = [0]*100
-    b = [0]*100
-
-    Total_sum,count = centralized_calculation(labels,Y11,Shared_length_X,Total_sum,count)
-    Total_sum, count = centralized_calculation(labels_1, Y22, Site1_length_X, Total_sum, count)
-    Total_sum, count = centralized_calculation(labels_2, Y23, Site2_length_X, Total_sum, count)
-    Total_sum, count = centralized_calculation(labels_3, Y24, Site3_length_X, Total_sum, count)
-
-
-    for i in range(0,10):
-        Total_sum[i] = Total_sum[i] / count[i]
-        a[i] = Total_sum[i] + .15
-        b[i] = Total_sum[i] - .15
-
-    Y11= centralized_calculation_final(labels,Y11,Shared_length_X,a,b)
-    Y22 = centralized_calculation_final(labels_1, Y22, Site1_length_X, a, b)
-    Y23 = centralized_calculation_final(labels_2, Y23, Site2_length_X, a, b)
-    Y24 = centralized_calculation_final(labels_3, Y24, Site3_length_X, a, b)
-
-    return Y11,Y22,Y23,Y24
-
-
 
 
 if __name__ == "__main__":
@@ -543,19 +457,19 @@ if __name__ == "__main__":
     Combined_X = Math.loadtxt("Preprocessing_Mnist_X.txt");
     Combined_labels = Math.loadtxt("Preprocessing_label.txt");
 
-    X = Math.loadtxt("Shared_Mnist_X.txt");
+    X1 = Math.loadtxt("Shared_Mnist_X.txt");
     labels = Math.loadtxt("Shared_lable.txt");
-    Site_1 = Math.loadtxt("Site_1_Mnist_X.txt");
+    Site_1_1 = Math.loadtxt("Site_1_Mnist_X.txt");
     labels_1 = Math.loadtxt("Site_1_Lable.txt");
-    Site_2 = Math.loadtxt("Site_2_Mnist_X.txt");
+    Site_2_2 = Math.loadtxt("Site_2_Mnist_X.txt");
     labels_2 = Math.loadtxt("Site_2_Lable.txt");
-    Site_3 = Math.loadtxt("Site_3_Mnist_X.txt");
+    Site_3_3 = Math.loadtxt("Site_3_Mnist_X.txt");
     labels_3 = Math.loadtxt("Site_3_Lable.txt");
 
-    #X = normalize_columns(X1)
-    #Site_1 = normalize_columns(Site_1_1)
-    #Site_2 = normalize_columns(Site_2_2)
-    #Site_3 = normalize_columns(Site_3_3)
+    X = normalize_columns(X1)
+    Site_1 = normalize_columns(Site_1_1)
+    Site_2 = normalize_columns(Site_2_2)
+    Site_3 = normalize_columns(Site_3_3)
 
     (Shared_length_X, Shared_length_Y) = X.shape;
     (Site1_length_X, Site1_length_Y) = Site_1.shape;
@@ -574,7 +488,7 @@ if __name__ == "__main__":
                               Site3_length_X)
     Y11[:Shared_length_X, :] = Y22[:Shared_length_X, :]
 
-    Y11,Y22,Y23,Y24 = centralized(Y11,Y22,Y23,Y24,labels,labels_1,labels_2,labels_3,Shared_length_X,Site1_length_X,Site2_length_X,Site3_length_X)
+   # Y11,Y22,Y23,Y24 = centralized(Y11,Y22,Y23,Y24,labels,labels_1,labels_2,labels_3,Shared_length_X,Site1_length_X,Site2_length_X,Site3_length_X)
 
     Plot.scatter(Y11[:, 0], Y11[:, 1], 20, labels);
     Plot.scatter(Y22[:, 0], Y22[:, 1], 20, labels_1);
