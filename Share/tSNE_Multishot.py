@@ -151,10 +151,9 @@ def tsne(X=Math.array([]), no_dims=2, initial_dims=50, perplexity= 100.0):
             dY[i, :] = Math.sum(Math.tile(PQ[:, i] * num[:, i], (no_dims, 1)).T * (Y[i, :] - Y), 0);
 
         # Perform the update
-        if iter <= 20:
+        if iter < 20:
             momentum = initial_momentum
-        elif (iter > 20 and iter < 920):
-            momentum = middle_momentum
+
         else:
             momentum = final_momentum
         gains = (gains + 0.2) * ((dY > 0) != (iY > 0)) + (gains * 0.8) * ((dY > 0) == (iY > 0));
@@ -171,7 +170,7 @@ def tsne(X=Math.array([]), no_dims=2, initial_dims=50, perplexity= 100.0):
             print "Iteration ", (iter + 1), ": error is ", C
 
         # Stop lying about P-values
-        if iter == 900:
+        if iter == 100:
             P = P / 4;
 
     # Return solution
@@ -327,7 +326,7 @@ def master(Y11, Shared_length, Site_1, Site1_length_X, Site_2, Site2_length_X, S
                  'site 1': {'data': Y22, 'labels': labels_1},
                  'site 2': {'data': Y23, 'labels': labels_2},
                  'site 3': {'data': Y24, 'labels': labels_3}}
-            layout_plot(d, save=True, frame=iter, path='/home/deb/figure100/Figure_25th_July/First_5000_Kaggle_Second_Datasets_Placement_adjustments/')
+            layout_plot(d, save=True, frame=iter, path='/home/deb/figure100/Four_Dataset_Creation/Experiment_1/All digit separate/')
 
             # with open('/tmp/Deb/iter.pkl', 'wb') as f:
             #	pkl.dump(d, f)
@@ -361,10 +360,9 @@ def master_child(Y, dY, iY, gains, n, Shared_length, P, iter, C):
         dY[i, :] = Math.sum(Math.tile(PQ[:, i] * num[:, i], (no_dims, 1)).T * (Y[i, :] - Y), 0);
 
     # Perform the update
-    if iter <= 20:
+    if iter < 20:
         momentum = initial_momentum
-    elif (iter>20 and iter < 920) :
-        momentum = middle_momentum
+
     else :
         momentum = final_momentum
 
@@ -382,7 +380,7 @@ def master_child(Y, dY, iY, gains, n, Shared_length, P, iter, C):
         print "Iteration ", (iter + 1), ": error is ", C
 
     # Stop lying about P-values
-    if iter == 900:
+    if iter == 100:
         P = P / 4;
 
     return (Y, iY, Q, C, P);
@@ -454,8 +452,8 @@ if __name__ == "__main__":
     # X = Math.loadtxt("mnist2500_X.txt");
     # labels = Math.loadtxt("mnist2500_labels.txt");
 
-    Combined_X = Math.loadtxt("Preprocessing_Mnist_X.txt");
-    Combined_labels = Math.loadtxt("Preprocessing_label.txt");
+    #Combined_X = Math.loadtxt("Preprocessing_Mnist_X.txt");
+    #Combined_labels = Math.loadtxt("Preprocessing_label.txt");
 
     X1 = Math.loadtxt("Shared_Mnist_X.txt");
     labels = Math.loadtxt("Shared_lable.txt");
